@@ -1066,39 +1066,42 @@ resetGoalForm() {
     }
     //统计功能
     bindAnalyticsModal() {
-        const analyticsBtn = document.getElementById('analyticsBtn');
-        const analyticsModal = document.getElementById('analyticsModal');
-        const analyticsOverlay = document.getElementById('analyticsOverlay');
-        const closeAnalyticsModal = document.getElementById('closeAnalyticsModal');
-        const tabBtns = document.querySelectorAll('.tab-btn');
+    const analyticsBtn = document.getElementById('analyticsBtn');
+    const analyticsOverlay = document.getElementById('analyticsOverlay');
+    const closeAnalyticsModal = document.getElementById('closeAnalyticsModal');
+    const tabBtns = document.querySelectorAll('.tab-btn');
 
-        if (analyticsBtn) {
-            analyticsBtn.addEventListener('click', () => {
-                this.currentPeriod = 'week';
-                tabBtns.forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.period === 'week');
-                });
-                this.openAnalyticsModal();
+    if (analyticsBtn) {
+        analyticsBtn.addEventListener('click', () => {
+            this.currentPeriod = 'week';
+
+            tabBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.period === 'week');
             });
-        }
 
-        if (closeAnalyticsModal) {
-            closeAnalyticsModal.addEventListener('click', () => this.closeAnalyticsModal());
-        }
-
-        if (analyticsOverlay) {
-            analyticsOverlay.addEventListener('click', () => this.closeAnalyticsModal());
-        }
-
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.currentPeriod = btn.dataset.period;
-                tabBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this.renderAnalytics();
-            });
+            this.openAnalyticsModal();
         });
     }
+
+    if (closeAnalyticsModal) {
+        closeAnalyticsModal.addEventListener('click', () => this.closeAnalyticsModal());
+    }
+
+    if (analyticsOverlay) {
+        analyticsOverlay.addEventListener('click', () => this.closeAnalyticsModal());
+    }
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            this.currentPeriod = btn.dataset.period;
+
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            this.renderAnalytics();
+        });
+    });
+}
 
     openAnalyticsModal() {
         const modal = document.getElementById('analyticsModal');
@@ -1116,25 +1119,53 @@ resetGoalForm() {
     }
 
     renderAnalytics() {
-        const events = this.getAnalyticsEvents(this.currentPeriod);
-        const prevEvents = this.getPreviousPeriodEvents(this.currentPeriod);
+    const events = this.getAnalyticsEvents(this.currentPeriod);
+    const prevEvents = this.getPreviousPeriodEvents(this.currentPeriod);
 
-        this.renderTotalHours(events);
-        this.renderCategoryStats(events);
-        this.renderCategoryRanking(events, prevEvents);
-        this.renderGoalsGantt();
+    this.renderAnalyticsRangeTitle(this.currentPeriod);
+    this.renderTotalHours(events);
+    this.renderCategoryStats(events);
+    this.renderCategoryRanking(events, prevEvents);
+    this.renderGoalsGantt(this.currentPeriod);
     }
+
+    renderAnalyticsRangeTitle(period) { // 表格行显示时间
+    const modal = document.getElementById('analyticsModal');
+    if (!modal) return;
+
+    let subtitle = modal.querySelector('.analytics-range-text');
+
+    if (!subtitle) {
+        subtitle = document.createElement('div');
+        subtitle.className = 'analytics-range-text';
+
+        const header = modal.querySelector('.modal-header');
+        if (header) {
+            header.appendChild(subtitle);
+        }
+    }
+
+    if (period === 'week') {
+        const start = this.getWeekStart(this.currentDate);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        subtitle.textContent = this.formatDateRange(start, end);
+    } else {
+        const year = this.currentDate.getFullYear();
+        const month = this.currentDate.getMonth() + 1;
+        subtitle.textContent = `${year}年${month}月`;
+    }
+}
     // 统计计算
     getAnalyticsEvents(period = 'week') {
     if (period === 'week') {
         const start = this.getWeekStart(this.currentDate);
         const end = new Date(start);
-        end.setDate(end.getDate() + 6);
-        end.setHours(23, 59, 59, 999);
+        end.setDate(end.getDate() + 7); // 右开区间
 
         return this.events.filter(event => {
-            const d = new Date(event.date);
-            return d >= start && d <= end;
+            const d = new Date(event.date + 'T00:00:00');
+            return d >= start && d < end;
         });
     }
 
@@ -1142,9 +1173,12 @@ resetGoalForm() {
         const year = this.currentDate.getFullYear();
         const month = this.currentDate.getMonth();
 
+        const start = new Date(year, month, 1);
+        const end = new Date(year, month + 1, 1); // 下月1号，右开区间
+
         return this.events.filter(event => {
-            const d = new Date(event.date);
-            return d.getFullYear() === year && d.getMonth() === month;
+            const d = new Date(event.date + 'T00:00:00');
+            return d >= start && d < end;
         });
     }
 
@@ -1153,26 +1187,28 @@ resetGoalForm() {
 
 getPreviousPeriodEvents(period = 'week') {
     if (period === 'week') {
-        const start = this.getWeekStart(this.currentDate);
-        const prevStart = new Date(start);
+        const currentStart = this.getWeekStart(this.currentDate);
+
+        const prevStart = new Date(currentStart);
         prevStart.setDate(prevStart.getDate() - 7);
 
-        const prevEnd = new Date(prevStart);
-        prevEnd.setDate(prevEnd.getDate() + 6);
-        prevEnd.setHours(23, 59, 59, 999);
-
+        const prevEnd = new Date(currentStart); // 上一期周结束 = 本周开始
         return this.events.filter(event => {
-            const d = new Date(event.date);
-            return d >= prevStart && d <= prevEnd;
+            const d = new Date(event.date + 'T00:00:00');
+            return d >= prevStart && d < prevEnd;
         });
     }
 
     if (period === 'month') {
-        const prevDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() - 1, 1);
+        const year = this.currentDate.getFullYear();
+        const month = this.currentDate.getMonth();
+
+        const prevStart = new Date(year, month - 1, 1);
+        const prevEnd = new Date(year, month, 1);
 
         return this.events.filter(event => {
-            const d = new Date(event.date);
-            return d.getFullYear() === prevDate.getFullYear() && d.getMonth() === prevDate.getMonth();
+            const d = new Date(event.date + 'T00:00:00');
+            return d >= prevStart && d < prevEnd;
         });
     }
 
@@ -1322,21 +1358,23 @@ renderCategoryRanking(events, prevEvents) {
         tickValues.push((yAxisTop / yTicks) * i);
     }
 
+  const CHART_HEIGHT = 220;
+
     const chartBars = sortedCategories.map(category => {
         const current = currentTotals[category] || 0;
         const prev = prevTotals[category] || 0;
 
-        const currentHeight = yAxisTop > 0 ? (current / yAxisTop) * 100 : 0;
-        const prevHeight = yAxisTop > 0 ? (prev / yAxisTop) * 100 : 0;
+        const currentHeight = yAxisTop > 0 ? (current / yAxisTop) * CHART_HEIGHT : 0;
+        const prevHeight = yAxisTop > 0 ? (prev / yAxisTop) * CHART_HEIGHT : 0;
 
         return `
             <div class="compare-group">
                 <div class="compare-bars">
                     <div class="compare-bar-wrap">
-                        <div class="compare-bar current" style="height:${currentHeight}%"></div>
+                        <div class="compare-bar current" style="height:${Math.max(currentHeight, current > 0 ? 4 : 0)}px"></div>
                     </div>
                     <div class="compare-bar-wrap">
-                        <div class="compare-bar previous" style="height:${prevHeight}%"></div>
+                        <div class="compare-bar previous" style="height:${Math.max(prevHeight, prev > 0 ? 4 : 0)}px"></div>
                     </div>
                 </div>
                 <div class="compare-label">${this.categoryNames[category] || category}</div>
