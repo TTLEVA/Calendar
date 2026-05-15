@@ -213,7 +213,7 @@ class MyCalendarApp {
                 this.editingEventId = null;
 
                 this.openEventModal();
-                }
+            }
             });
             
             daysGrid.appendChild(dayColumn);
@@ -231,7 +231,7 @@ class MyCalendarApp {
     }
 
  createEventBlock(event) {
-     const block = document.createElement('div');
+   const block = document.createElement('div');
      block.className = `event-block ${event.category || 'business'}`;
      block.dataset.eventId = event.id;
 
@@ -327,7 +327,7 @@ class MyCalendarApp {
      });
 
      return block;
- }
+}
 
     timeToMinutes(timeStr) {
         const [h, m] = timeStr.split(':').map(Number);
@@ -412,7 +412,7 @@ class MyCalendarApp {
             dayEvents.slice(0, 3).forEach(event => {
                 const eventDiv = document.createElement('div');
                 eventDiv.className = `month-event ${event.category || 'business'}`;
-                eventDiv.textContent = event.title || '(未命名)';
+                eventDiv.textContent = event.title;
                 eventDiv.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.openEventModal(event.id);
@@ -676,9 +676,8 @@ bindEventModal() {
             const meetingLink = document.getElementById('eventMeetingLink').value.trim();
             const notes = document.getElementById('eventNotes').value.trim();
 
-            // 修改验证：标题不再是必填项
-            if (!date || !startTime || !endTime || !category) {
-                alert('请填写完整的必填项（标题可选）');
+            if ( !date || !startTime || !endTime || !category) {
+                alert('请填写完整的必填项');
                 return;
             }
 
