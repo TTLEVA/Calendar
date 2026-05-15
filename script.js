@@ -202,6 +202,9 @@ class MyCalendarApp {
                     document.getElementById('eventStartTime').value = `${String(startHour).padStart(2, '0')}:00`;
                     document.getElementById('eventEndTime').value = `${String(endHour).padStart(2, '0')}:00`;
                     document.getElementById('eventDate').value = this.selectedDate;
+                    document.getElementById('modalTitle').textContent = '新建事件';
+                    document.getElementById('deleteEventBtn').style.display = 'none';
+                    this.editingEventId = null;
                     this.openEventModal();
                 }
             });
@@ -221,103 +224,103 @@ class MyCalendarApp {
     }
 
  createEventBlock(event) {
-    const block = document.createElement('div');
-    block.className = `event-block ${event.category || 'business'}`;
-    block.dataset.eventId = event.id;
+     const block = document.createElement('div');
+     block.className = `event-block ${event.category || 'business'}`;
+     block.dataset.eventId = event.id;
 
-    const startMinutes = this.timeToMinutes(event.startTime);
-    const endMinutes = this.timeToMinutes(event.endTime);
-    const durationMinutes = Math.max(15, endMinutes - startMinutes);
+     const startMinutes = this.timeToMinutes(event.startTime);
+     const endMinutes = this.timeToMinutes(event.endTime);
+     const durationMinutes = Math.max(15, endMinutes - startMinutes);
 
-    // 1分钟 = 1px
-    block.style.top = `${startMinutes}px`;
-    block.style.height = `${durationMinutes}px`;
+     // 1分钟 = 1px
+     block.style.top = `${startMinutes}px`;
+     block.style.height = `${durationMinutes}px`;
 
-    block.innerHTML = `
-        <div class="event-title">${event.title}</div>
-        <div class="event-time">${event.startTime} - ${event.endTime}</div>
-    `;
+     block.innerHTML = `
+         <div class="event-title">${event.title || '(未命名)'}</div>
+         <div class="event-time">${event.startTime} - ${event.endTime}</div>
+     `;
 
-    let isDragging = false;
-    let hasMoved = false;
-    let startY = 0;
-    let originalTop = 0;
+     let isDragging = false;
+     let hasMoved = false;
+     let startY = 0;
+     let originalTop = 0;
 
-    const timeText = block.querySelector('.event-time');
+     const timeText = block.querySelector('.event-time');
 
-    block.addEventListener('mousedown', (e) => {
-        // 只处理左键
-        if (e.button !== 0) return;
+     block.addEventListener('mousedown', (e) => {
+         // 只处理左键
+         if (e.button !== 0) return;
 
-        e.preventDefault();
-        e.stopPropagation();
+         e.preventDefault();
+         e.stopPropagation();
 
-        isDragging = true;
-        hasMoved = false;
-        startY = e.clientY;
-        originalTop = parseFloat(block.style.top) || 0;
+         isDragging = true;
+         hasMoved = false;
+         startY = e.clientY;
+         originalTop = parseFloat(block.style.top) || 0;
 
-        block.classList.add('dragging');
+         block.classList.add('dragging');
 
-        const onMouseMove = (moveEvent) => {
-            if (!isDragging) return;
+         const onMouseMove = (moveEvent) => {
+             if (!isDragging) return;
 
-            const deltaY = moveEvent.clientY - startY;
-            if (Math.abs(deltaY) > 3) {
-                hasMoved = true;
-            }
+             const deltaY = moveEvent.clientY - startY;
+             if (Math.abs(deltaY) > 3) {
+                 hasMoved = true;
+             }
 
-            let newTop = originalTop + deltaY;
+             let newTop = originalTop + deltaY;
 
-            // 吸附到 15 分钟
-            newTop = this.snapMinutes(newTop);
+             // 吸附到 15 分钟
+             newTop = this.snapMinutes(newTop);
 
-            // 限制在当天范围内
-            const maxTop = 1440 - durationMinutes;
-            newTop = Math.max(0, Math.min(maxTop, newTop));
+             // 限制在当天范围内
+             const maxTop = 1440 - durationMinutes;
+             newTop = Math.max(0, Math.min(maxTop, newTop));
 
-            block.style.top = `${newTop}px`;
+             block.style.top = `${newTop}px`;
 
-            // 拖动过程中实时更新时间文字
-            const newStartMinutes = newTop;
-            const newEndMinutes = newTop + durationMinutes;
-            timeText.textContent = `${this.minutesToTime(newStartMinutes)} - ${this.minutesToTime(newEndMinutes)}`;
-        };
+             // 拖动过程中实时更新时间文字
+             const newStartMinutes = newTop;
+             const newEndMinutes = newTop + durationMinutes;
+             timeText.textContent = `${this.minutesToTime(newStartMinutes)} - ${this.minutesToTime(newEndMinutes)}`;
+         };
 
-        const onMouseUp = () => {
-            if (!isDragging) return;
-            isDragging = false;
+         const onMouseUp = () => {
+             if (!isDragging) return;
+             isDragging = false;
 
-            block.classList.remove('dragging');
+             block.classList.remove('dragging');
 
-            const finalTop = parseFloat(block.style.top) || 0;
-            const newStartMinutes = this.snapMinutes(finalTop);
-            const newEndMinutes = newStartMinutes + durationMinutes;
+             const finalTop = parseFloat(block.style.top) || 0;
+             const newStartMinutes = this.snapMinutes(finalTop);
+             const newEndMinutes = newStartMinutes + durationMinutes;
 
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
+             document.removeEventListener('mousemove', onMouseMove);
+             document.removeEventListener('mouseup', onMouseUp);
 
-            // 如果没有拖动，按单击处理，进入编辑页
-            if (!hasMoved) {
-                this.openEventModal(event.id);
-                return;
-            }
+             // 如果没有拖动，按单击处理，进入编辑页
+             if (!hasMoved) {
+                 this.openEventModal(event.id);
+                 return;
+             }
 
-            // 更新事件时间
-            event.startTime = this.minutesToTime(newStartMinutes);
-            event.endTime = this.minutesToTime(newEndMinutes);
+             // 更新事件时间
+             event.startTime = this.minutesToTime(newStartMinutes);
+             event.endTime = this.minutesToTime(newEndMinutes);
 
-            // 保存并重新渲染
-            this.saveEvents();
-            this.render();
-        };
+             // 保存并重新渲染
+             this.saveEvents();
+             this.render();
+         };
 
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
-    });
+         document.addEventListener('mousemove', onMouseMove);
+         document.addEventListener('mouseup', onMouseUp);
+     });
 
-    return block;
-}
+     return block;
+ }
 
     timeToMinutes(timeStr) {
         const [h, m] = timeStr.split(':').map(Number);
@@ -402,7 +405,7 @@ class MyCalendarApp {
             dayEvents.slice(0, 3).forEach(event => {
                 const eventDiv = document.createElement('div');
                 eventDiv.className = `month-event ${event.category || 'business'}`;
-                eventDiv.textContent = event.title;
+                eventDiv.textContent = event.title || '(未命名)';
                 eventDiv.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.openEventModal(event.id);
@@ -666,8 +669,9 @@ bindEventModal() {
             const meetingLink = document.getElementById('eventMeetingLink').value.trim();
             const notes = document.getElementById('eventNotes').value.trim();
 
-            if (!title || !date || !startTime || !endTime || !category) {
-                alert('请填写完整的必填项');
+            // 修改验证：标题不再是必填项
+            if (!date || !startTime || !endTime || !category) {
+                alert('请填写完整的必填项（标题可选）');
                 return;
             }
 
