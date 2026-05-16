@@ -191,17 +191,23 @@ class MyCalendarApp {
                     const wrapper = document.querySelector('.days-grid-wrapper');
                     const scrollTop = wrapper.scrollTop;
                     const rect = dayColumn.getBoundingClientRect();
-                    const clickY = e.clientY + scrollTop;
-                    const hour = Math.floor(clickY / 60);
+                     // 点击位置相对于当前日期列顶部的距离
+                    // 注意：这里不要再加 scrollTop
+                    const clickY = e.clientY - rect.top;
+                    // 从 DOM 读取实际每小时高度，避免写死 60，也避免重复计算行高度
+                    const hourHeight = this.getHourHeight();
                     
+                    const clickedHour = Math.floor(clickY / hourHeight);
+                    const startHour = Math.max(0, Math.min(23, clickedHour));
                     this.selectedDate = this.formatDate(dayDate);
-                    const startHour = Math.min(hour, 23);
-                    const endHour = Math.min(startHour + 1, 23);
                     
                     this.resetEventForm();
-                    document.getElementById('eventStartTime').value = `${String(startHour).padStart(2, '0')}:00`;
-                    document.getElementById('eventEndTime').value = `${String(endHour).padStart(2, '0')}:00`;
                     document.getElementById('eventDate').value = this.selectedDate;
+                    document.getElementById('eventStartTime').value = `${String(startHour).padStart(2, '0')}:00`;
+
+                    const endHour = Math.min(startHour + 1, 23);
+                    document.getElementById('eventEndTime').value = `${String(endHour).padStart(2, '0')}:00`;
+
                     this.openEventModal();
                 }
             });
@@ -346,6 +352,11 @@ class MyCalendarApp {
             slot.textContent = `${String(i).padStart(2, '0')}:00`;
             timeSlots.appendChild(slot);
         }
+    }
+
+    getHourHeight() {
+    const slot = document.querySelector('.time-slot');
+    return slot ? slot.getBoundingClientRect().height : 60;
     }
 
     // ========== 月视图 ==========
