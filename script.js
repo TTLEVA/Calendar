@@ -26,7 +26,7 @@ class MyCalendarApp {
             study: '学习',
             health: '健康',
             personal: '个人',
-            reading: '阅读/新闻',
+            reading: '阅读',
             meeting: '会议',
             leisure: '娱乐',
             social: '社交'
@@ -188,32 +188,22 @@ class MyCalendarApp {
             
             dayColumn.addEventListener('click', (e) => {
                 if (e.target === dayColumn) {
-                const wrapper = document.querySelector('.days-grid-wrapper');
-                const rect = dayColumn.getBoundingClientRect();
-
-                // 点击点相对于 dayColumn 顶部的位置
-                const clickY = e.clientY - rect.top + wrapper.scrollTop;
-
-                // 1分钟 = 1px，所以 clickY 就是当天第几分钟
-                // 点击 6:00-6:59 之间，都归到 6:00
-                const startMinutes = Math.floor(clickY / 60) * 60;
-
-                // 限制范围，避免超出一天
-                const safeStartMinutes = Math.max(0, Math.min(startMinutes, 23 * 60));
-                const endMinutes = Math.min(safeStartMinutes + 60, 23 * 60 + 59);
-
-                this.selectedDate = this.formatDate(dayDate);
-
-                this.resetEventForm();
-                document.getElementById('eventStartTime').value = this.minutesToTime(safeStartMinutes);
-                document.getElementById('eventEndTime').value = this.minutesToTime(endMinutes);
-                document.getElementById('eventDate').value = this.selectedDate;
-
-                document.getElementById('modalTitle').textContent = '新建事件';
-                this.editingEventId = null;
-
-                this.openEventModal();
-            }
+                    const wrapper = document.querySelector('.days-grid-wrapper');
+                    const scrollTop = wrapper.scrollTop;
+                    const rect = dayColumn.getBoundingClientRect();
+                    const clickY = e.clientY + scrollTop;
+                    const hour = Math.floor(clickY / 60);
+                    
+                    this.selectedDate = this.formatDate(dayDate);
+                    const startHour = Math.min(hour, 23);
+                    const endHour = Math.min(startHour + 1, 23);
+                    
+                    this.resetEventForm();
+                    document.getElementById('eventStartTime').value = `${String(startHour).padStart(2, '0')}:00`;
+                    document.getElementById('eventEndTime').value = `${String(endHour).padStart(2, '0')}:00`;
+                    document.getElementById('eventDate').value = this.selectedDate;
+                    this.openEventModal();
+                }
             });
             
             daysGrid.appendChild(dayColumn);
